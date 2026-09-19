@@ -1,0 +1,35 @@
+# Render Blueprint: web service + managed Postgres.
+# SQLite files are wiped on every Render redeploy, so the question bank lives in Postgres.
+databases:
+  - name: physics-master-db
+    plan: basic-256mb        # "free" works for a trial but the free database expires after 30 days
+    region: singapore
+
+services:
+  - type: web
+    name: physics-master
+    runtime: python
+    plan: starter            # free instances spin down after 15 min idle and would kill running jobs
+    region: singapore        # must match the database region
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: DATABASE_URL
+        fromDatabase:
+          name: physics-master-db
+          property: connectionString
+      - key: APP_API_KEY       # the access key you type into the web page
+        generateValue: true
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: CLAUDE_MODEL
+        value: claude-sonnet-5
+      - key: GEMINI_MODEL
+        value: gemini-2.5-pro
+      - key: JOB_WORKERS
+        value: "1"

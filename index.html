@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Physics Master</title>
+<script>
+  window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] } };
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<style>
+  :root { --bg:#fafaf9; --fg:#1c1917; --muted:#78716c; --card:#fff; --line:#e7e5e4; --accent:#1d4ed8; --ok:#15803d; --bad:#b91c1c; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#161513; --fg:#f5f5f4; --muted:#a8a29e; --card:#1f1d1b; --line:#3a3633; --accent:#60a5fa; --ok:#4ade80; --bad:#f87171; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 system-ui, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; }
+  label { display:block; font-size:13px; color:var(--muted); margin:10px 0 4px; }
+  input, select { width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--fg); font:inherit; }
+  .row { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+  .types label { display:inline-flex; align-items:center; gap:6px; margin:6px 14px 0 0; color:var(--fg); font-size:14px; }
+  .types input { width:auto; }
+  button { padding:9px 14px; border:1px solid var(--accent); background:var(--accent); color:#fff; border-radius:8px; font:inherit; cursor:pointer; }
+  button.ghost { background:transparent; color:var(--accent); }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+  #status { color:var(--muted); }
+  #status.error { color:var(--bad); }
+  .bar { height:8px; background:var(--line); border-radius:99px; overflow:hidden; margin-top:8px; }
+  .bar > div { height:100%; width:0; background:var(--accent); transition:width .4s; }
+  .q .meta { font-size:12px; color:var(--muted); margin-bottom:6px; }
+  .q .text, .q .opt, .q .sol { white-space:pre-wrap; }
+  .q .opt { margin:3px 0 3px 12px; }
+  details { margin-top:10px; }
+  summary { cursor:pointer; color:var(--accent); }
+  .ans { font-weight:600; margin-top:8px; }
+  .rem { display:flex; gap:8px; margin-top:12px; }
+  .rem input { flex:1; }
+  .remedial { margin-top:12px; padding:12px; border-left:3px solid var(--accent); background:var(--bg); border-radius:0 8px 8px 0; }
+  .ok { color:var(--ok); } .bad { color:var(--bad); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Physics Master</h1>
+  <p class="sub">NEET / JEE question papers, written by one AI and independently solved and audited by another.</p>
+
+  <div class="card">
+    <label for="key">Access key</label>
+    <input id="key" type="password" autocomplete="off" placeholder="Paste the APP_API_KEY">
+
+    <div class="row">
+      <div><label for="exam">Exam</label>
+        <select id="exam">
+          <option value="jee_advanced">JEE Advanced</option>
+          <option value="jee_main">JEE Main</option>
+          <option value="neet">NEET</option>
+        </select></div>
+      <div><label for="difficulty">Difficulty</label>
+        <select id="difficulty">
+          <option value="adaptive">Adaptive (exam default mix)</option>
+          <option value="easy">Easy</option>
+          <option value="medium">Medium</option>
+          <option value="hard">Hard</option>
+        </select></div>
+    </div>
+    <div class="row">
+      <div><label for="chapter">Chapter</label><input id="chapter" value="Rotational Motion"></div>
+      <div><label for="count">Number of questions (1-100)</label><input id="count" type="number" min="1" max="100" value="10"></div>
+    </div>
+    <label>Question types</label>
+    <div class="types">
+      <label><input type="checkbox" name="qt" value="mcq" checked> MCQ</label>
+      <label><input type="checkbox" name="qt" value="multiple_correct" checked> Multiple correct</label>
+      <label><input type="checkbox" name="qt" value="assertion_reason" checked> Assertion-Reason</label>
+      <label><input type="checkbox" name="qt" value="match_column" checked> Match the column</label>
+      <label><input type="checkbox" name="qt" value="fill_blank" checked> Fill in the blank</label>
+    </div>
+    <div class="actions"><button id="start">Generate paper</button></div>
+  </div>
+
+  <div class="card" id="statusCard" hidden>
+    <div id="status"></div>
+    <div class="bar"><div id="barFill"></div></div>
+    <div class="actions" id="downloads" hidden>
+      <button class="ghost" id="dlPaper">Download paper (.txt)</button>
+      <button class="ghost" id="dlSol">Download solutions (.txt)</button>
+      <button class="ghost" id="dlJson">Download JSON</button>
+    </div>
+  </div>
+
+  <div id="results"></div>
+</main>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const keyInput = $('#key');
+keyInput.value = localStorage.getItem('pm_key') || '';
+keyInput.addEventListener('change', () => localStorage.setItem('pm_key', keyInput.value));
+
+let currentJob = null;
+let currentQuestions = [];
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    ...opts,
+    headers: { 'X-API-Key': keyInput.value, 'Content-Type': 'application/json' },
+  });
+  if (res.status === 401) throw new Error('Wrong or missing access key');
+  if (!res.ok) {
+    let msg = res.statusText;
+    try { const j = await res.json(); msg = typeof j.detail === 'string' ? j.detail : JSON.stringify(j.detail || j); } catch (e) {}
+    throw new Error(msg);
+  }
+  const ct = res.headers.get('content-type') || '';
+  return ct.includes('application/json') ? res.json() : res.text();
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function poll(jobId, onUpdate) {
+  for (;;) {
+    const job = await api('/api/jobs/' + jobId);
+    onUpdate(job);
+    if (job.status === 'done' || job.status === 'failed') return job;
+    await sleep(4000);
+  }
+}
+
+function setStatus(text, isError = false, pct = null) {
+  $('#statusCard').hidden = false;
+  const el = $('#status');
+  el.textContent = text;
+  el.className = isError ? 'error' : '';
+  if (pct !== null) $('#barFill').style.width = pct + '%';
+}
+
+function describe(job) {
+  const p = job.progress || {};
+  if (job.status === 'queued') return ['Queued...', 2];
+  const pct = p.target ? Math.round(100 * (p.accepted || 0) / p.target) : 5;
+  const label = { planning: 'Planning the syllabus', generating: 'Generating candidates', verifying: 'Cross-checking candidates', finished: 'Finishing' }[p.phase] || 'Working';
+  const round = p.round ? ` (round ${p.round})` : '';
+  return [`${label}${round} - ${p.accepted || 0}/${p.target || '?'} verified`, pct];
+}
+
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
+}
+
+function questionBlock(q, withRemedialBox) {
+  const box = el('div', 'card q');
+  const idx = currentQuestions.indexOf(q);
+  box.append(el('div', 'meta', `${idx >= 0 ? 'Q' + (idx + 1) + ' · ' : ''}${q.question_type} · difficulty ${q.difficulty}`));
+  box.append(el('div', 'text', q.question));
+  q.options.forEach((o, k) => box.append(el('div', 'opt', `(${String.fromCharCode(65 + k)}) ${o}`)));
+  const det = el('details');
+  det.append(el('summary', '', 'Answer and solution'));
+  det.append(el('div', 'ans', 'Answer: ' + q.correct_answer.join(', ')));
+  det.append(el('div', 'sol', q.solution));
+  box.append(det);
+  if (withRemedialBox) {
+    const row = el('div', 'rem');
+    const inp = el('input'); inp.placeholder = "Student's wrong answer (e.g. B, or a value)";
+    const btn = el('button', 'ghost', 'Diagnose + remedial');
+    const out = el('div');
+    btn.onclick = async () => {
+      if (!inp.value.trim()) return;
+      btn.disabled = true; out.textContent = 'Working...';
+      try {
+        const { job_id } = await api('/api/jobs/remedial', { method: 'POST', body: JSON.stringify({ question_id: q.id, student_answer: inp.value.trim() }) });
+        const job = await poll(job_id, (j) => { out.textContent = j.status === 'running' ? 'Diagnosing and writing a verified remedial question...' : 'Queued...'; });
+        out.textContent = '';
+        if (job.status === 'failed') { out.append(el('div', 'bad', job.error)); }
+        else if (job.result.correct) { out.append(el('div', 'ok', 'That answer is correct - nothing to remediate.')); }
+        else {
+          const r = el('div', 'remedial');
+          r.append(el('div', 'meta', `Diagnosis: ${job.result.analysis.error_type} - ${job.result.analysis.likely_misconception}`));
+          r.append(el('div', 'sol', job.result.analysis.explanation));
+          r.append(questionBlock(job.result.question, false));
+          out.append(r);
+        }
+        typeset();
+      } catch (e) { out.textContent = e.message; }
+      btn.disabled = false;
+    };
+    row.append(inp, btn);
+    box.append(row, out);
+  }
+  return box;
+}
+
+function typeset() { if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise(); }
+
+function renderResult(job) {
+  currentQuestions = job.result.questions;
+  const root = $('#results');
+  root.textContent = '';
+  currentQuestions.forEach((q) => root.append(questionBlock(q, true)));
+  $('#downloads').hidden = false;
+  typeset();
+}
+
+async function follow(jobId) {
+  currentJob = jobId;
+  localStorage.setItem('pm_job', jobId);
+  $('#start').disabled = true;
+  $('#downloads').hidden = true;
+  try {
+    const job = await poll(jobId, (j) => { const [t, pct] = describe(j); setStatus(t, false, pct); });
+    if (job.status === 'failed') { setStatus('Failed: ' + job.error, true); }
+    else {
+      const n = job.result.questions.length;
+      setStatus(job.result.partial ? `Done, but only ${n} questions passed verification (target not reached).` : `Done - ${n} verified questions.`, false, 100);
+      renderResult(job);
+    }
+  } catch (e) { setStatus(e.message, true); }
+  $('#start').disabled = false;
+}
+
+$('#start').onclick = async () => {
+  const types = [...document.querySelectorAll('input[name=qt]:checked')].map((x) => x.value);
+  if (!types.length) return setStatus('Pick at least one question type.', true);
+  localStorage.setItem('pm_key', keyInput.value);
+  const body = { exam: $('#exam').value, chapter: $('#chapter').value.trim(), count: +$('#count').value, question_types: types, difficulty: $('#difficulty').value };
+  try {
+    setStatus('Starting...', false, 1);
+    $('#results').textContent = '';
+    const { job_id } = await api('/api/jobs/generate', { method: 'POST', body: JSON.stringify(body) });
+    follow(job_id);
+  } catch (e) { setStatus(e.message, true); }
+};
+
+async function download(path, name, type) {
+  const text = await api(path);
+  const blob = new Blob([typeof text === 'string' ? text : JSON.stringify(text, null, 2)], { type });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  URL.revokeObjectURL(a.href);
+}
+$('#dlPaper').onclick = () => download(`/api/jobs/${currentJob}/paper.txt`, 'physics_paper.txt', 'text/plain');
+$('#dlSol').onclick = () => download(`/api/jobs/${currentJob}/solutions.txt`, 'physics_solutions.txt', 'text/plain');
+$('#dlJson').onclick = () => download(`/api/jobs/${currentJob}`, 'physics_paper.json', 'application/json');
+
+// resume the last job after a page refresh
+const last = localStorage.getItem('pm_job');
+if (last && keyInput.value) follow(last);
+</script>
+</body>
+</html>

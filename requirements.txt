@@ -1,0 +1,9 @@
+anthropic>=0.40
+google-genai>=1.0
+pydantic>=2.6
+python-dotenv>=1.0
+sympy>=1.12
+scikit-learn>=1.4
+fastapi>=0.110
+uvicorn[standard]>=0.29
+psycopg[binary]>=3.1
