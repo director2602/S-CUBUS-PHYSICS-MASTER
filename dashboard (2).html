@@ -1,0 +1,1110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#400C4D">
+<title>S-CUBUS Physics Paper Studio</title>
+<link rel="icon" href="/logo-icon.png">
+<script>
+  // Math rendering (SVG output so it can also be captured into the PDF)
+  window.MathJax = {
+    tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+    svg: { fontCache: 'local' },
+    startup: { typeset: false }
+  };
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+<style>
+  :root {
+    --brand: #400C4D;
+    --brand-700: #2f0839;
+    --brand-600: #56186a;
+    --brand-300: #b48bc2;
+    --brand-100: #f0e4f4;
+    --brand-50: #f9f4fb;
+    --ink: #1b1024;
+    --muted: #6f6478;
+    --line: #e9dfee;
+    --bg: #faf7fb;
+    --card: #ffffff;
+    --ok: #1e7b4f;  --ok-bg: #e5f5ec;
+    --warn: #9a5b00; --warn-bg: #fff3dc;
+    --bad: #b3261e;  --bad-bg: #fdecea;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(64,12,77,.06), 0 6px 20px rgba(64,12,77,.06);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--bg); color: var(--ink); font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  button, input, select { font: inherit; color: inherit; }
+  svg.i { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  /* ---------- layout ---------- */
+  .app { display: grid; grid-template-columns: 264px minmax(0, 1fr); min-height: 100%; }
+  .side { background: var(--brand); color: #fff; padding: 22px 16px; display: flex; flex-direction: column; gap: 22px; position: sticky; top: 0; height: 100vh; }
+  .brand { display: flex; align-items: center; gap: 12px; padding: 0 6px; }
+  .logo { width: 46px; height: 46px; border-radius: 12px; background: #fff; color: var(--brand); display: grid; place-items: center; font-weight: 800; font-size: 22px; padding: 5px; overflow: hidden; }
+  .logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .brand-name { font-weight: 800; letter-spacing: .06em; font-size: 17px; line-height: 1.1; }
+  .brand-sub { font-size: 12px; opacity: .75; }
+  nav { display: flex; flex-direction: column; gap: 4px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border: 0; border-radius: 10px; background: transparent; color: rgba(255,255,255,.82); cursor: pointer; text-align: left; }
+  .nav-item:hover { background: rgba(255,255,255,.09); color: #fff; }
+  .nav-item.active { background: #fff; color: var(--brand); font-weight: 650; }
+  .badge { margin-left: auto; background: rgba(255,255,255,.2); border-radius: 99px; padding: 0 8px; font-size: 12px; }
+  .nav-item.active .badge { background: var(--brand-100); color: var(--brand); }
+  .side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+  .side-foot label { opacity: .75; font-size: 12px; }
+  .keybox { display: flex; gap: 6px; }
+  .keybox input { flex: 1; min-width: 0; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.1); color: #fff; padding: 9px 10px; border-radius: 9px; }
+  .keybox input::placeholder { color: rgba(255,255,255,.55); }
+  .keybox button { border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.1); color: #fff; border-radius: 9px; padding: 0 10px; cursor: pointer; }
+  .pill { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; background: rgba(255,255,255,.12); border-radius: 99px; padding: 5px 11px; width: fit-content; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #f5b301; }
+  .dot.on { background: #4ade80; } .dot.off { background: #f87171; }
+  #keyMsg { min-height: 18px; }
+
+  main { padding: 28px clamp(16px, 3vw, 40px) 64px; max-width: 1180px; width: 100%; }
+  .view { display: none; } .view.active { display: block; }
+  h1 { font-size: 26px; line-height: 1.2; margin: 0 0 4px; color: var(--brand); }
+  h2 { font-size: 17px; margin: 0; }
+  h3 { font-size: 15px; margin: 0; }
+  .lead { color: var(--muted); margin: 0 0 22px; }
+  .small { font-size: 13px; } .muted { color: var(--muted); }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+  .card + .card { margin-top: 16px; }
+  .step-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .step-n { width: 28px; height: 28px; border-radius: 50%; background: var(--brand); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 14px; flex: none; }
+
+  .create-grid { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 20px; align-items: start; }
+  .summary { position: sticky; top: 20px; }
+  .summary dl { margin: 14px 0; display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; font-size: 14px; }
+  .summary dt { color: var(--muted); } .summary dd { margin: 0; font-weight: 600; text-align: right; }
+
+  .opt-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .opt-card { border: 2px solid var(--line); border-radius: 12px; padding: 14px; cursor: pointer; background: #fff; display: block; transition: .15s; }
+  .opt-card:hover { border-color: var(--brand-300); }
+  .opt-card.selected { border-color: var(--brand); background: var(--brand-50); box-shadow: 0 0 0 3px rgba(64,12,77,.08); }
+  .opt-card input { position: absolute; opacity: 0; pointer-events: none; }
+  .opt-card b { display: block; font-size: 16px; color: var(--brand); }
+  .opt-card span { display: block; font-size: 13px; color: var(--muted); margin-top: 3px; line-height: 1.35; }
+
+  select, input[type=text], input[type=number] { width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+  select:focus, input:focus, button:focus-visible, summary:focus-visible { outline: 3px solid rgba(64,12,77,.25); outline-offset: 1px; }
+  .field { margin-top: 12px; }
+  .field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 5px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip-btn { border: 1.5px solid var(--line); background: #fff; border-radius: 99px; padding: 8px 15px; cursor: pointer; font-weight: 550; transition: .15s; }
+  .chip-btn:hover { border-color: var(--brand-300); }
+  .chip-btn.selected { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .chip-btn.chosen { background: var(--brand); border-color: var(--brand); color: #fff; display: inline-flex; align-items: center; gap: 6px; }
+  .chip-btn.chosen .x { opacity: .85; font-weight: 800; }
+  .chapter-picker { max-height: 260px; overflow-y: auto; border: 1.5px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-top: 10px; }
+  .chapter-picker .grp-label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 10px 0 6px; }
+  .chapter-picker .grp-label:first-child { margin-top: 0; }
+  .chapter-row { display: flex; align-items: center; gap: 10px; padding: 7px 4px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+  .chapter-row:hover { background: var(--brand-50); }
+  .chapter-row .tick { width: 18px; height: 18px; border-radius: 5px; border: 2px solid var(--brand-300); display: grid; place-items: center; flex: none; color: #fff; }
+  .chapter-row.selected .tick { background: var(--brand); border-color: var(--brand); }
+  .chapter-title { margin: 30px 0 4px; font-size: 19px; font-weight: 800; color: var(--brand); border-bottom: 2px solid var(--brand-100); padding-bottom: 7px; }
+  .type-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .type-item { border: 1.5px solid var(--line); border-radius: 12px; padding: 11px 13px; cursor: pointer; display: flex; gap: 10px; align-items: flex-start; background: #fff; }
+  .type-item.selected { border-color: var(--brand); background: var(--brand-50); }
+  .tick { width: 20px; height: 20px; border-radius: 6px; border: 2px solid var(--brand-300); display: grid; place-items: center; flex: none; margin-top: 2px; color: #fff; }
+  .type-item.selected .tick { background: var(--brand); border-color: var(--brand); }
+  .type-item b { display: block; font-size: 14px; } .type-item span { font-size: 12.5px; color: var(--muted); line-height: 1.3; display: block; }
+  .seg { display: inline-flex; border: 1.5px solid var(--line); border-radius: 12px; overflow: hidden; flex-wrap: wrap; }
+  .seg button { border: 0; background: #fff; padding: 9px 16px; cursor: pointer; font-weight: 550; }
+  .seg button + button { border-left: 1.5px solid var(--line); }
+  .seg button.selected { background: var(--brand); color: #fff; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 18px; border-radius: 11px; border: 1.5px solid var(--brand); background: var(--brand); color: #fff; font-weight: 650; cursor: pointer; transition: .15s; }
+  .btn:hover { background: var(--brand-600); border-color: var(--brand-600); }
+  .btn.secondary { background: #fff; color: var(--brand); }
+  .btn.secondary:hover { background: var(--brand-50); }
+  .btn.ghost { background: transparent; border-color: transparent; color: var(--brand); padding: 8px 10px; }
+  .btn.ghost:hover { background: var(--brand-50); }
+  .btn.block { width: 100%; padding: 14px; font-size: 16px; }
+  .btn:disabled { opacity: .55; cursor: not-allowed; }
+  .btn.sm { padding: 7px 12px; font-size: 13.5px; }
+
+  .notice { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; font-size: 14px; margin-bottom: 14px; }
+  .notice.info { background: var(--brand-50); border: 1px solid var(--line); }
+  .notice.warn { background: var(--warn-bg); color: var(--warn); }
+  .notice.bad { background: var(--bad-bg); color: var(--bad); }
+  .notice.ok { background: var(--ok-bg); color: var(--ok); }
+  .notice svg { margin-top: 2px; }
+
+  /* progress */
+  .bar { height: 10px; background: var(--brand-100); border-radius: 99px; overflow: hidden; margin: 12px 0 16px; }
+  .bar > div { height: 100%; width: 3%; background: linear-gradient(90deg, var(--brand), #8a3ea3); border-radius: 99px; transition: width .6s; }
+  .bigcount { font-size: 15px; } .bigcount b { font-size: 30px; color: var(--brand); }
+  .stages { list-style: none; padding: 0; margin: 0; display: grid; gap: 9px; font-size: 14px; }
+  .stages li { display: flex; align-items: center; gap: 10px; color: var(--muted); }
+  .stages .sd { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; flex: none; }
+  .stages li.done { color: var(--ink); } .stages li.done .sd { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .stages li.done .sd svg { width: 11px; height: 11px; stroke-width: 3.5; }
+  .stages li.active { color: var(--brand); font-weight: 650; } .stages li.active .sd { border-color: var(--brand); border-top-color: transparent; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hint { font-size: 13px; color: var(--muted); margin: 14px 0 0; }
+
+  /* paper header + actions */
+  .paper-hero { background: linear-gradient(135deg, var(--brand) 0%, #6a2b80 100%); color: #fff; border-radius: var(--radius); padding: 24px 26px; box-shadow: var(--shadow); }
+  .paper-hero .eyebrow { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; opacity: .8; }
+  .paper-hero h1 { color: #fff; margin: 4px 0 12px; font-size: 27px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta span { background: rgba(255,255,255,.16); border-radius: 99px; padding: 5px 12px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; align-items: center; }
+  .pdfbar { height: 6px; background: var(--brand-100); border-radius: 99px; overflow: hidden; width: 160px; display: none; }
+  .pdfbar.on { display: block; } .pdfbar > div { height: 100%; width: 0; background: var(--brand); transition: width .2s; }
+  .settings { display: none; margin-bottom: 16px; }
+  .settings.open { display: block; }
+  .set-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+  .section-title { margin: 26px 0 10px; display: flex; align-items: center; gap: 10px; color: var(--brand); font-weight: 700; }
+  .section-title::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+  .qcard { background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--brand); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; box-shadow: var(--shadow); }
+  .qhead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .qnum { min-width: 30px; height: 30px; border-radius: 50%; background: var(--brand); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 14px; padding: 0 6px; }
+  .grow { flex: 1; }
+  .chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; border-radius: 99px; padding: 3px 10px; background: var(--brand-100); color: var(--brand); }
+  .chip.muted { background: #f3f0f5; color: var(--muted); font-weight: 500; }
+  .chip.d-easy { background: var(--ok-bg); color: var(--ok); } .chip.d-medium { background: var(--warn-bg); color: var(--warn); } .chip.d-hard { background: var(--bad-bg); color: var(--bad); }
+  .chip svg { width: 13px; height: 13px; }
+  .qtext, .opt, .sol { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .opt { margin: 5px 0 5px 4px; display: flex; gap: 10px; } .opt b { color: var(--brand); min-width: 26px; }
+  .icon-btn { border: 0; background: transparent; color: var(--muted); cursor: pointer; padding: 6px; border-radius: 8px; }
+  .icon-btn:hover { background: var(--bad-bg); color: var(--bad); }
+  details { margin-top: 12px; border-top: 1px dashed var(--line); padding-top: 10px; }
+  summary { cursor: pointer; color: var(--brand); font-weight: 600; font-size: 14px; }
+  .ans-chip { display: inline-block; background: var(--ok-bg); color: var(--ok); font-weight: 700; padding: 3px 12px; border-radius: 99px; margin: 10px 0 8px; }
+  .rem-row { display: flex; gap: 8px; margin-top: 10px; } .rem-row input { flex: 1; }
+  .remedial { margin-top: 12px; padding: 12px; border-left: 3px solid var(--brand); background: var(--brand-50); border-radius: 0 10px 10px 0; }
+
+  /* library */
+  .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+  .lib-card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px; }
+  .lib-card h3 { color: var(--brand); }
+  .empty { text-align: center; padding: 48px 20px; }
+  .empty .ring { width: 64px; height: 64px; border-radius: 50%; background: var(--brand-100); color: var(--brand); display: grid; place-items: center; margin: 0 auto 14px; }
+  .empty .ring svg { width: 30px; height: 30px; }
+
+  .help-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .help-grid ol, .help-grid ul { padding-left: 20px; margin: 8px 0 0; } .help-grid li { margin: 6px 0; }
+
+  #toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 50; align-items: center; }
+  .toast { background: var(--brand-700); color: #fff; padding: 11px 16px; border-radius: 12px; box-shadow: 0 8px 28px rgba(0,0,0,.25); display: flex; gap: 12px; align-items: center; max-width: 92vw; }
+  .toast button { background: rgba(255,255,255,.18); border: 0; color: #fff; border-radius: 8px; padding: 4px 10px; cursor: pointer; }
+
+  /* ---------- PDF page blocks (rendered off-screen, then captured) ---------- */
+  #pdfStage { position: fixed; left: -12000px; top: 0; width: 688px; pointer-events: none; }
+  .pdf-block { width: 688px; background: #fff; color: #1b1024; font: 14.5px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: 2px 0; }
+  .pdf-block .pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .pdf-hero { background: #400C4D; color: #fff; border-radius: 12px; padding: 22px 26px; display: flex; gap: 18px; align-items: center; }
+  .pdf-hero .logow { width: 54px; height: 54px; border-radius: 10px; background: #fff; flex: none; display: grid; place-items: center; padding: 5px; overflow: hidden; }
+  .pdf-hero .logow img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .pdf-hero .txt { flex: 1; min-width: 0; }
+  .pdf-hero .inst { font-size: 13px; letter-spacing: .22em; font-weight: 700; opacity: .85; }
+  .pdf-hero .ttl { font-size: 27px; font-weight: 800; margin: 6px 0 4px; line-height: 1.2; }
+  .pdf-hero .sub { font-size: 15px; opacity: .9; }
+  .pdf-info { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0; }
+  .pdf-info div { border: 1.5px solid #e4d3ea; border-radius: 10px; padding: 8px 10px; }
+  .pdf-info small { display: block; color: #6f6478; font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; }
+  .pdf-info b { font-size: 15.5px; color: #400C4D; }
+  .pdf-name { display: flex; gap: 24px; margin: 10px 0 14px; color: #6f6478; font-size: 13.5px; } .pdf-name span { flex: 1; border-bottom: 1.5px solid #cbb7d3; padding-bottom: 14px; }
+  .pdf-instr { border: 1.5px solid #e4d3ea; background: #f9f4fb; border-radius: 10px; padding: 12px 16px; font-size: 13.5px; }
+  .pdf-instr b { color: #400C4D; } .pdf-instr ol { margin: 6px 0 0; padding-left: 20px; } .pdf-instr li { margin: 3px 0; }
+  .pdf-sec { background: #f0e4f4; color: #400C4D; font-weight: 800; padding: 8px 14px; border-radius: 8px; border-left: 5px solid #400C4D; margin-top: 8px; font-size: 15px; }
+  .pdf-chap { color: #400C4D; font-weight: 800; font-size: 19px; padding-bottom: 8px; border-bottom: 2.5px solid #400C4D; margin-top: 10px; }
+  .pdf-q { border-bottom: 1px solid #ece3f0; padding: 10px 2px 12px; }
+  .pdf-q .row { display: flex; gap: 12px; }
+  .pdf-q .n { min-width: 30px; height: 30px; border-radius: 50%; background: #400C4D; color: #fff; text-align: center; line-height: 30px; font-weight: 700; font-size: 13.5px; flex: none; }
+  .pdf-q .body { flex: 1; min-width: 0; }
+  .pdf-q .marks { float: right; font-size: 12px; color: #6f6478; margin-left: 10px; }
+  .pdf-q .opt { display: flex; gap: 8px; margin: 4px 0 0 2px; } .pdf-q .opt b { color: #400C4D; min-width: 24px; }
+  .pdf-q .blank { margin-top: 12px; color: #6f6478; }
+  .pdf-akey { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .pdf-akey div { border: 1.5px solid #e4d3ea; border-radius: 8px; padding: 6px 10px; font-size: 14px; } .pdf-akey b { color: #400C4D; margin-right: 6px; }
+  .pdf-sol { border-left: 4px solid #400C4D; background: #fbf8fc; border-radius: 0 10px 10px 0; padding: 10px 14px; margin: 6px 0; }
+  .pdf-sol .h { display: flex; gap: 10px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
+  .pdf-sol .qn { background: #400C4D; color: #fff; border-radius: 99px; padding: 1px 11px; font-weight: 700; font-size: 13px; }
+  .pdf-sol .an { color: #1e7b4f; font-weight: 800; }
+  .pdf-sol .tg { color: #6f6478; font-size: 12.5px; }
+  .pdf-sol .mt { color: #6f6478; font-size: 12.5px; margin-top: 6px; }
+  .pdf-h2 { color: #400C4D; font-size: 20px; font-weight: 800; margin: 10px 0 8px; }
+
+  /* ---------- responsive ---------- */
+  @media (max-width: 980px) {
+    .app { grid-template-columns: 1fr; }
+    .side { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 12px 14px; gap: 10px; }
+    nav { flex-direction: row; flex-wrap: wrap; }
+    .side-foot { margin-top: 0; width: 100%; flex-direction: row; flex-wrap: wrap; align-items: center; }
+    .side-foot label { display: none; } .keybox { flex: 1; min-width: 200px; }
+    .create-grid { grid-template-columns: 1fr; } .summary { position: static; }
+    .opt-grid, .type-list { grid-template-columns: 1fr; }
+  }
+  @media print {
+    body { background: #fff; } .side, .actions, .settings, #toast, .icon-btn, details.rem, .no-print { display: none !important; }
+    .app { display: block; } main { padding: 0; max-width: none; } .view { display: none !important; } #view-paper { display: block !important; }
+    .qcard { box-shadow: none; break-inside: avoid; } .paper-hero { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <div class="logo"><img src="/logo-icon.png" alt="S-CUBUS"></div>
+      <div><div class="brand-name">S-CUBUS</div><div class="brand-sub">Physics Paper Studio</div></div>
+    </div>
+    <nav>
+      <button class="nav-item active" data-view="create"><span data-icon="edit"></span> Create paper</button>
+      <button class="nav-item" data-view="library"><span data-icon="folder"></span> My papers <span class="badge" id="libCount" hidden></span></button>
+      <button class="nav-item" data-view="help"><span data-icon="help"></span> How it works</button>
+    </nav>
+    <div class="side-foot">
+      <div class="pill"><span class="dot" id="srvDot"></span><span id="srvText">Checking server...</span></div>
+      <label for="key">Access key</label>
+      <div class="keybox">
+        <input id="key" type="password" placeholder="Paste your access key" autocomplete="off">
+        <button id="keyEye" type="button" title="Show or hide" aria-label="Show or hide key"><span data-icon="eye"></span></button>
+      </div>
+      <div id="keyMsg" class="small"></div>
+    </div>
+  </aside>
+
+  <main>
+    <!-- ================= CREATE ================= -->
+    <section class="view active" id="view-create">
+      <h1>Create a paper</h1>
+      <p class="lead">Choose what you need. Every question is written by AI, then solved again independently and audited before it is added.</p>
+      <div id="createNotice"></div>
+
+      <div class="create-grid">
+        <div>
+          <div class="card">
+            <div class="step-head"><span class="step-n">1</span><h2>Exam level</h2></div>
+            <div class="opt-grid" id="examGrid"></div>
+          </div>
+          <div class="card">
+            <div class="step-head"><span class="step-n">2</span><h2>Chapter(s)</h2></div>
+            <p class="small muted" style="margin:0 0 10px">Pick one or more. One paper will be made covering all of them.</p>
+            <div class="chips" id="chapterChips"></div>
+            <div class="chapter-picker" id="chapterPicker"></div>
+            <div class="field">
+              <label for="chapterCustom">Add a custom chapter or topic</label>
+              <div style="display:flex;gap:8px">
+                <input type="text" id="chapterCustom" placeholder="e.g. Rotational Motion: rolling without slipping">
+                <button type="button" class="btn secondary sm" id="chapterAddBtn" style="flex:none">Add</button>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="step-head"><span class="step-n">3</span><h2>Number and type of questions</h2></div>
+            <div class="chips" id="countChips"></div>
+            <div class="field"><label for="countCustom">Or type a number (1 to 100)</label><input type="number" id="countCustom" min="1" max="100" style="max-width:140px"></div>
+            <div id="countWarn" class="small muted" style="margin-top:8px"></div>
+            <div class="field"><label>Question types</label><div class="type-list" id="typeList"></div></div>
+          </div>
+          <div class="card">
+            <div class="step-head"><span class="step-n">4</span><h2>Difficulty</h2></div>
+            <div class="seg" id="diffSeg"></div>
+            <p class="small muted" style="margin:10px 0 0" id="diffHelp"></p>
+          </div>
+        </div>
+
+        <aside class="summary">
+          <div class="card" id="sumCard">
+            <h2>Your paper</h2>
+            <dl>
+              <dt>Exam</dt><dd id="sExam"></dd>
+              <dt>Chapter</dt><dd id="sChapter"></dd>
+              <dt>Questions</dt><dd id="sCount"></dd>
+              <dt>Types</dt><dd id="sTypes"></dd>
+              <dt>Difficulty</dt><dd id="sDiff"></dd>
+              <dt>Estimated time</dt><dd id="sTime"></dd>
+            </dl>
+            <button class="btn block" id="genBtn"><span data-icon="edit"></span> Generate paper</button>
+            <p class="hint">Free plan: allow roughly a minute per question. Keep this tab open; if you leave, come back within 15 minutes. With several chapters selected, chapters are generated one after another, so please stay on this tab until it finishes.</p>
+          </div>
+          <div class="card" id="progCard" hidden>
+            <div style="display:flex;justify-content:space-between;align-items:center"><h2>Creating your paper</h2><span class="small muted" id="elapsed">0:00</span></div>
+            <div class="bigcount" style="margin-top:10px"><b id="pAcc">0</b> of <span id="pTarget">0</span> questions verified</div>
+            <div class="bar"><div id="pBar"></div></div>
+            <ul class="stages" id="stages">
+              <li data-st="planning"><span class="sd"></span> Planning the syllabus</li>
+              <li data-st="generating"><span class="sd"></span> Writing questions</li>
+              <li data-st="verifying"><span class="sd"></span> Solving and checking each one</li>
+              <li data-st="finished"><span class="sd"></span> Finishing up</li>
+            </ul>
+            <p class="hint" id="progHint">Questions that fail the independent solve or the physics audit are discarded, so this takes a while.</p>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ================= PAPER ================= -->
+    <section class="view" id="view-paper">
+      <div id="paperRoot"></div>
+    </section>
+
+    <!-- ================= LIBRARY ================= -->
+    <section class="view" id="view-library">
+      <h1>My papers</h1>
+      <p class="lead">Papers are saved in this browser, so you can download them again any time, even after the server sleeps.</p>
+      <div id="libRoot"></div>
+    </section>
+
+    <!-- ================= HELP ================= -->
+    <section class="view" id="view-help">
+      <h1>How it works</h1>
+      <p class="lead">A short guide to what happens, and what to expect.</p>
+      <div class="help-grid">
+        <div class="card"><h2>Three checks per question</h2>
+          <ol><li><b>Write:</b> one AI call drafts an original question and worked solution.</li>
+          <li><b>Solve blind:</b> another call solves it without seeing the answer. If the answers differ, the question is discarded.</li>
+          <li><b>Audit:</b> a strict physics review checks units, options and ambiguity. Numerical answers are also recomputed in code.</li></ol></div>
+        <div class="card"><h2>What to expect on the free plan</h2>
+          <ul><li>Roughly a minute per verified question.</li>
+          <li>Google's free limits are small. If the daily limit is reached, you keep what was verified so far.</li>
+          <li>Picking several chapters makes one paper, but each chapter is generated one after another, so it takes longer than a single-chapter paper of the same size.</li>
+          <li>The server sleeps when idle and forgets everything. That is why papers are saved in <b>your browser</b>.</li></ul></div>
+        <div class="card"><h2>Before you use a paper</h2>
+          <ul><li>Skim every question and the answer key. AI checking is strong but not perfect.</li>
+          <li>Use the bin icon to remove any question you do not like. It is removed from the PDFs too.</li>
+          <li>Set the title, duration and marking in <b>Paper settings</b>.</li></ul></div>
+        <div class="card"><h2>PDF downloads</h2>
+          <ul><li><b>Question paper:</b> for students, with instructions and sections.</li>
+          <li><b>Answer key and solutions:</b> for teachers.</li>
+          <li><b>Teacher copy:</b> paper followed by the key, in one file.</li></ul></div>
+      </div>
+    </section>
+  </main>
+</div>
+<div id="toast" aria-live="polite"></div>
+<div id="pdfStage" aria-hidden="true"></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   helpers
+   ===================================================================== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const store = {
+  get(k, d = null) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} },
+  raw(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } },
+  setRaw(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+};
+const ICONS = {
+  edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>',
+  folder: '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>',
+  help: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+  check: '<polyline points="20 6 9 17 4 12"/>',
+  trash: '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>',
+  clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  alert: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+  file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+  eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
+  copy: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  printer: '<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>',
+  shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/>',
+  sliders: '<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>',
+  plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+};
+const icon = (n) => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n] || ''}</svg>`;
+function paintIcons(root = document) { $$('[data-icon]', root).forEach((e) => { e.outerHTML = icon(e.dataset.icon); }); }
+
+async function typeset(el) {
+  try { if (window.MathJax && MathJax.typesetPromise) await MathJax.typesetPromise(el ? [el] : undefined); } catch (e) { console.warn('math', e); }
+}
+function toast(msg, action) {
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+  if (action) { const b = document.createElement('button'); b.textContent = action.label; b.onclick = () => { action.fn(); t.remove(); }; t.append(b); }
+  $('#toast').append(t); setTimeout(() => t.remove(), action ? 8000 : 3800);
+}
+
+/* =====================================================================
+   constants
+   ===================================================================== */
+const EXAMS = {
+  neet: { label: 'NEET', blurb: 'Conceptual, NCERT-aligned questions solved quickly.', types: ['mcq', 'assertion_reason', 'match_column'] },
+  jee_main: { label: 'JEE Main', blurb: 'Moderate concept and calculation mix, with numerical answers.', types: ['mcq', 'fill_blank'] },
+  jee_advanced: { label: 'JEE Advanced', blurb: 'Multi-concept problems in unfamiliar situations.', types: ['mcq', 'multiple_correct', 'match_column', 'fill_blank'] },
+};
+const TYPES = {
+  mcq: { label: 'Single correct (MCQ)', short: 'MCQ', blurb: 'Four options, exactly one is correct.' },
+  multiple_correct: { label: 'One or more correct', short: 'Multiple correct', blurb: 'Four options, any number can be correct.' },
+  assertion_reason: { label: 'Assertion and Reason', short: 'Assertion-Reason', blurb: 'Judge two statements and their link.' },
+  match_column: { label: 'Match the columns', short: 'Match columns', blurb: 'Match Column I items to Column II.' },
+  fill_blank: { label: 'Numerical / fill in the blank', short: 'Numerical', blurb: 'A single value as the answer.' },
+};
+const TYPE_ORDER = ['mcq', 'multiple_correct', 'assertion_reason', 'match_column', 'fill_blank'];
+const CHAPTERS = {
+  'Class 11': ['Units and Measurements', 'Kinematics (Motion in a Straight Line and Plane)', 'Laws of Motion', 'Work, Energy and Power', 'Centre of Mass and Collisions', 'Rotational Motion', 'Gravitation', 'Mechanical Properties of Solids', 'Mechanical Properties of Fluids', 'Thermal Properties of Matter', 'Thermodynamics', 'Kinetic Theory of Gases', 'Oscillations (SHM)', 'Waves'],
+  'Class 12': ['Electric Charges and Fields', 'Electrostatic Potential and Capacitance', 'Current Electricity', 'Moving Charges and Magnetism', 'Magnetism and Matter', 'Electromagnetic Induction', 'Alternating Current', 'Electromagnetic Waves', 'Ray Optics', 'Wave Optics', 'Dual Nature of Radiation and Matter', 'Atoms', 'Nuclei', 'Semiconductor Electronics'],
+};
+const DIFFS = {
+  adaptive: 'Adaptive', easy: 'Easy', medium: 'Medium', hard: 'Hard',
+};
+const DIFF_HELP = {
+  adaptive: 'Recommended: a realistic mix for the chosen exam (harder for JEE Advanced, easier for NEET).',
+  easy: 'Mostly direct, single-concept questions.', medium: 'Typical exam-level questions.', hard: 'Multi-step, multi-concept questions.',
+};
+const bandOf = (d) => (d <= 3.5 ? 'easy' : d < 7 ? 'medium' : 'hard');
+
+/* =====================================================================
+   state
+   ===================================================================== */
+const S = {
+  view: 'create', exam: 'jee_main', chapters: ['Rotational Motion'], count: 10,
+  types: new Set(EXAMS.jee_main.types), difficulty: 'adaptive', paper: null, job: null, removed: [],
+};
+const chaptersList = () => S.chapters.filter(Boolean);
+function toggleChapter(name) {
+  const i = S.chapters.indexOf(name);
+  if (i >= 0) S.chapters.splice(i, 1); else S.chapters.push(name);
+  refreshCreate();
+}
+function addCustomChapter() {
+  const v = $('#chapterCustom').value.trim();
+  if (!v) return;
+  if (!S.chapters.includes(v)) S.chapters.push(v);
+  $('#chapterCustom').value = '';
+  refreshCreate();
+}
+
+/* =====================================================================
+   API
+   ===================================================================== */
+const getKey = () => $('#key').value.trim();
+async function api(path, opts = {}) {
+  const res = await fetch(path, { ...opts, headers: { 'X-API-Key': getKey(), 'Content-Type': 'application/json' } });
+  if (res.status === 401) { const e = new Error('The access key is missing or wrong.'); e.code = 401; throw e; }
+  if (!res.ok) {
+    let msg = res.statusText;
+    try { const j = await res.json(); msg = typeof j.detail === 'string' ? j.detail : JSON.stringify(j.detail || j); } catch (e) {}
+    const err = new Error(msg); err.code = res.status; throw err;
+  }
+  const ct = res.headers.get('content-type') || '';
+  return ct.includes('application/json') ? res.json() : res.text();
+}
+
+async function checkServer() {
+  const dot = $('#srvDot'), txt = $('#srvText');
+  dot.className = 'dot'; txt.textContent = 'Waking up the server...';
+  const t0 = Date.now();
+  for (let i = 0; i < 12; i++) {
+    try {
+      const r = await fetch('/health', { cache: 'no-store' });
+      if (r.ok) { dot.className = 'dot on'; txt.textContent = 'Server online'; return true; }
+    } catch (e) {}
+    txt.textContent = `Waking up the server (${Math.round((Date.now() - t0) / 1000)}s)...`;
+    await sleep(4000);
+  }
+  dot.className = 'dot off'; txt.textContent = 'Server not reachable';
+  return false;
+}
+
+let keyTimer = null;
+async function verifyKey() {
+  const msg = $('#keyMsg'); const k = getKey();
+  store.setRaw('pm_key', k);
+  if (!k) { msg.textContent = ''; return; }
+  msg.textContent = 'Checking...';
+  try { await api('/api/auth-check'); msg.innerHTML = '&#10003; Key accepted'; msg.style.color = '#8ef0b3'; }
+  catch (e) { msg.textContent = e.code === 401 ? 'That key is not correct' : 'Could not check the key yet'; msg.style.color = '#ffb4ab'; }
+}
+
+/* =====================================================================
+   navigation
+   ===================================================================== */
+function show(view) {
+  S.view = view;
+  $$('.view').forEach((v) => v.classList.toggle('active', v.id === 'view-' + view));
+  $$('.nav-item').forEach((n) => n.classList.toggle('active', n.dataset.view === view || (view === 'paper' && n.dataset.view === 'library')));
+  if (view === 'library') renderLibrary();
+  window.scrollTo({ top: 0 });
+}
+$$('.nav-item').forEach((n) => (n.onclick = () => show(n.dataset.view)));
+
+/* =====================================================================
+   CREATE view
+   ===================================================================== */
+function buildCreate() {
+  $('#examGrid').innerHTML = Object.entries(EXAMS).map(([k, e]) =>
+    `<label class="opt-card" data-exam="${k}"><input type="radio" name="exam" value="${k}"><b>${e.label}</b><span>${e.blurb}</span></label>`).join('');
+  $$('#examGrid .opt-card').forEach((c) => (c.onclick = () => { S.exam = c.dataset.exam; S.types = new Set(EXAMS[S.exam].types); refreshCreate(); }));
+
+  $('#chapterPicker').innerHTML = Object.entries(CHAPTERS).map(([g, list]) =>
+    `<div class="grp-label">${esc(g)}</div>${list.map((c) =>
+      `<div class="chapter-row" data-c="${esc(c)}" role="checkbox" tabindex="0"><span class="tick">${icon('check')}</span><span>${esc(c)}</span></div>`).join('')}`).join('');
+  $$('#chapterPicker .chapter-row').forEach((row) => {
+    row.onclick = () => toggleChapter(row.dataset.c);
+    row.onkeydown = (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleChapter(row.dataset.c); } };
+  });
+  $('#chapterAddBtn').onclick = addCustomChapter;
+  $('#chapterCustom').onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomChapter(); } };
+
+  $('#countChips').innerHTML = [5, 10, 20, 30, 50].map((n) => `<button type="button" class="chip-btn" data-n="${n}">${n}</button>`).join('');
+  $$('#countChips .chip-btn').forEach((b) => (b.onclick = () => { S.count = +b.dataset.n; refreshCreate(); }));
+  $('#countCustom').oninput = (e) => { const v = parseInt(e.target.value, 10); if (v >= 1 && v <= 100) { S.count = v; refreshCreate(true); } };
+
+  $('#typeList').innerHTML = TYPE_ORDER.map((k) =>
+    `<div class="type-item" data-t="${k}" role="checkbox" tabindex="0"><span class="tick">${icon('check')}</span><div><b>${TYPES[k].label}</b><span>${TYPES[k].blurb}</span></div></div>`).join('');
+  $$('#typeList .type-item').forEach((c) => {
+    const toggle = () => { const t = c.dataset.t; if (S.types.has(t)) { if (S.types.size > 1) S.types.delete(t); else toast('Keep at least one question type.'); } else S.types.add(t); refreshCreate(); };
+    c.onclick = toggle; c.onkeydown = (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); } };
+  });
+
+  $('#diffSeg').innerHTML = Object.entries(DIFFS).map(([k, v]) => `<button type="button" data-d="${k}">${v}</button>`).join('');
+  $$('#diffSeg button').forEach((b) => (b.onclick = () => { S.difficulty = b.dataset.d; refreshCreate(); }));
+
+  $('#genBtn').onclick = startGenerate;
+  paintIcons();
+  refreshCreate();
+}
+
+function refreshCreate(keepCustom) {
+  $$('#examGrid .opt-card').forEach((c) => c.classList.toggle('selected', c.dataset.exam === S.exam));
+  const chs = chaptersList();
+  $('#chapterChips').innerHTML = chs.map((c) =>
+    `<button type="button" class="chip-btn chosen" data-rm="${esc(c)}">${esc(c)} <span class="x">&times;</span></button>`).join('')
+    || '<span class="small muted">No chapters selected yet.</span>';
+  $$('#chapterChips [data-rm]').forEach((b) => (b.onclick = () => toggleChapter(b.dataset.rm)));
+  $$('#chapterPicker .chapter-row').forEach((row) => row.classList.toggle('selected', chs.includes(row.dataset.c)));
+  $$('#countChips .chip-btn').forEach((b) => b.classList.toggle('selected', +b.dataset.n === S.count));
+  if (!keepCustom) $('#countCustom').value = [5, 10, 20, 30, 50].includes(S.count) ? '' : S.count;
+  $$('#typeList .type-item').forEach((c) => c.classList.toggle('selected', S.types.has(c.dataset.t)));
+  $$('#diffSeg button').forEach((b) => b.classList.toggle('selected', b.dataset.d === S.difficulty));
+  $('#diffHelp').textContent = DIFF_HELP[S.difficulty];
+  $('#countWarn').textContent = S.count > 50 ? 'Large papers use many free AI requests and may stop early at Google\'s daily limit.' : '';
+  const mins = Math.max(2, Math.ceil(S.count * 1.1));
+  $('#sExam').textContent = EXAMS[S.exam].label;
+  $('#sChapter').textContent = chs.length ? (chs.length > 2 ? `${chs[0]}, ${chs[1]} +${chs.length - 2} more` : chs.join(', ')) : 'Not chosen';
+  $('#sCount').textContent = S.count + (chs.length > 1 ? ` (across ${chs.length} chapters)` : '');
+  $('#sTypes').textContent = TYPE_ORDER.filter((t) => S.types.has(t)).map((t) => TYPES[t].short).join(', ');
+  $('#sDiff').textContent = DIFFS[S.difficulty];
+  $('#sTime').textContent = mins < 60 ? `about ${mins} min` : `about ${(mins / 60).toFixed(1)} h`;
+}
+
+function setBusy(busy) {
+  $('#sumCard').hidden = busy; $('#progCard').hidden = !busy;
+  $('#genBtn').disabled = busy;
+}
+
+function showCreateNotice(kind, html) {
+  $('#createNotice').innerHTML = html ? `<div class="notice ${kind}">${icon(kind === 'ok' ? 'check' : 'alert')}<div>${html}</div></div>` : '';
+  paintIcons($('#createNotice'));
+}
+
+/* ---------- generate + follow ---------- */
+function distributeCounts(total, n) {
+  const base = Math.floor(total / n), rem = total % n;
+  return Array.from({ length: n }, (_, i) => base + (i < rem ? 1 : 0));
+}
+
+async function startGenerate() {
+  const chs = chaptersList();
+  if (!getKey()) { showCreateNotice('warn', 'Please paste your <b>access key</b> (bottom left) first.'); $('#key').focus(); return; }
+  if (!chs.length) { showCreateNotice('warn', 'Please choose or add at least one chapter.'); return; }
+  showCreateNotice('', '');
+  const types = TYPE_ORDER.filter((t) => S.types.has(t));
+
+  if (chs.length === 1) {
+    const body = { exam: S.exam, chapter: chs[0], count: S.count, question_types: types, difficulty: S.difficulty };
+    try {
+      setBusy(true); updateProgress({ status: 'queued' }, Date.now());
+      const { job_id } = await api('/api/jobs/generate', { method: 'POST', body: JSON.stringify(body) });
+      const meta = { id: job_id, startedAt: Date.now(), body };
+      store.set('pm_job', meta);
+      followJob(meta);
+    } catch (e) {
+      setBusy(false);
+      showCreateNotice('bad', e.code === 401 ? 'The access key is wrong. Please check it and try again.' : 'Could not start: ' + esc(e.message));
+    }
+    return;
+  }
+
+  // multiple chapters: one job per chapter, run one after another, combined into a single paper
+  const counts = distributeCounts(S.count, chs.length);
+  const tasks = chs.map((c, i) => ({ chapter: c, count: Math.max(1, counts[i]) }));
+  runMultiGenerate(tasks, types);
+}
+
+async function runMultiGenerate(tasks, types) {
+  setBusy(true); show('create');
+  const startedAt = Date.now();
+  const total = tasks.reduce((a, t) => a + t.count, 0);
+  let allAccepted = [], quotaStopped = false, errorMsg = null;
+  clearInterval(elapsedTimer);
+  const tick = () => { const s = Math.floor((Date.now() - startedAt) / 1000); $('#elapsed').textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+  tick(); elapsedTimer = setInterval(tick, 1000);
+
+  for (let ti = 0; ti < tasks.length; ti++) {
+    const task = tasks[ti];
+    const body = { exam: S.exam, chapter: task.chapter, count: task.count, question_types: types, difficulty: S.difficulty };
+    let job_id;
+    try {
+      const r = await api('/api/jobs/generate', { method: 'POST', body: JSON.stringify(body) });
+      job_id = r.job_id;
+    } catch (e) {
+      errorMsg = e.code === 401 ? 'The access key is wrong.' : 'Could not start: ' + e.message;
+      break;
+    }
+    let misses = 0, job, chapterDone = false;
+    while (!chapterDone) {
+      try { job = await api('/api/jobs/' + job_id); misses = 0; }
+      catch (e) {
+        if (e.code === 404) { errorMsg = 'The server restarted and lost that job (this happens on the free plan when it sleeps). Please generate again.'; break; }
+        if (e.code === 401) { errorMsg = 'The access key is wrong.'; break; }
+        misses++; $('#progHint').textContent = 'Reconnecting to the server...'; await sleep(Math.min(15000, 3000 + misses * 2000)); continue;
+      }
+      const acc = allAccepted.length + ((job.progress && job.progress.accepted) || 0);
+      updateProgress({ status: job.status, progress: Object.assign({}, job.progress, { target: total, accepted: acc }) }, startedAt);
+      const sub = job.progress && job.progress.phase === 'verifying' ? 'solving and checking each question' : 'writing questions';
+      $('#progHint').textContent = `Chapter ${ti + 1} of ${tasks.length}: ${task.chapter} — ${sub}...`;
+      if (job.status === 'failed') {
+        if (/daily|quota|limit/i.test(job.error || '')) quotaStopped = true;
+        else errorMsg = job.error || ('Something went wrong on ' + task.chapter);
+        chapterDone = true; break;
+      }
+      if (job.status === 'done') {
+        const qs = (job.result.questions || []).map((q) => Object.assign({}, q, { chapter: task.chapter }));
+        allAccepted = allAccepted.concat(qs);
+        if (job.result.quota_exhausted) quotaStopped = true;
+        chapterDone = true; break;
+      }
+      await sleep(4000);
+    }
+    if (errorMsg || quotaStopped) break;
+  }
+  finishJob();
+  if (!allAccepted.length) {
+    showCreateNotice('bad', errorMsg ? '<b>Something went wrong.</b> ' + esc(errorMsg) : '<b>No questions were produced.</b>');
+    return;
+  }
+  openNewMultiPaper(allAccepted, tasks, total, quotaStopped);
+  if (errorMsg) toast('Stopped early: ' + errorMsg);
+}
+
+let elapsedTimer = null;
+function updateProgress(job, startedAt) {
+  const p = job.progress || {};
+  const target = p.target || (job.request && job.request.count) || S.count;
+  const acc = p.accepted || 0;
+  $('#pAcc').textContent = acc; $('#pTarget').textContent = target;
+  $('#pBar').style.width = Math.max(3, Math.round((100 * acc) / Math.max(1, target))) + '%';
+  const phase = job.status === 'queued' ? 'queued' : p.phase || 'planning';
+  $$('#stages li').forEach((li) => {
+    const st = li.dataset.st; li.className = '';
+    const started = phase !== 'queued' && phase !== 'planning';
+    if (st === 'planning') li.className = phase === 'planning' || phase === 'queued' ? 'active' : 'done';
+    else if (st === 'finished') li.className = phase === 'finished' ? 'active' : '';
+    else if (started && st === phase) li.className = 'active';
+  });
+  $('#progHint').textContent = job.status === 'queued' ? 'Waiting for the server to start (it may have been asleep)...'
+    : p.round ? `Round ${p.round}: questions that fail the independent solve or audit are discarded, so several rounds are normal.`
+    : 'Questions that fail the independent solve or the physics audit are discarded, so this takes a while.';
+  clearInterval(elapsedTimer);
+  const tick = () => { const s = Math.floor((Date.now() - startedAt) / 1000); $('#elapsed').textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+  tick(); elapsedTimer = setInterval(tick, 1000);
+}
+
+async function followJob(meta) {
+  setBusy(true); show('create');
+  let misses = 0;
+  for (;;) {
+    let job;
+    try { job = await api('/api/jobs/' + meta.id); misses = 0; }
+    catch (e) {
+      if (e.code === 404) { finishJob(); showCreateNotice('warn', 'The server restarted and lost that job (this happens on the free plan when it sleeps). Please generate again.'); return; }
+      if (e.code === 401) { finishJob(); showCreateNotice('bad', 'The access key is wrong.'); return; }
+      misses++; $('#progHint').textContent = 'Reconnecting to the server...'; await sleep(Math.min(15000, 3000 + misses * 2000)); continue;
+    }
+    updateProgress(job, meta.startedAt);
+    if (job.status === 'failed') {
+      finishJob();
+      const err = job.error || 'Unknown error';
+      const quota = /daily|quota|limit/i.test(err);
+      showCreateNotice('bad', quota ? '<b>The free daily AI limit was reached.</b> Please try again tomorrow, or ask for fewer questions.' : '<b>Something went wrong.</b> ' + esc(err));
+      return;
+    }
+    if (job.status === 'done') { finishJob(); openNewPaper(job, meta); return; }
+    await sleep(4000);
+  }
+}
+function finishJob() { clearInterval(elapsedTimer); store.del('pm_job'); setBusy(false); }
+
+/* =====================================================================
+   papers (saved in this browser)
+   ===================================================================== */
+const loadPapers = () => store.get('pm_papers', []);
+function savePapers(list) {
+  let l = list.slice(0, 40);
+  while (l.length && !store.set('pm_papers', l)) l.pop();       // drop oldest if storage is full
+  updateLibCount();
+}
+function savePaper(p) { const list = loadPapers().filter((x) => x.id !== p.id); list.unshift(p); savePapers(list); }
+function updateLibCount() { const n = loadPapers().length; const b = $('#libCount'); b.hidden = !n; b.textContent = n; }
+
+function sortedQuestions(qs) {
+  return [...qs].sort((a, b) => TYPE_ORDER.indexOf(a.question_type) - TYPE_ORDER.indexOf(b.question_type));
+}
+function sortedQuestionsMulti(qs, chapterOrder) {
+  return [...qs].sort((a, b) => {
+    const ca = chapterOrder.indexOf(a.chapter), cb = chapterOrder.indexOf(b.chapter);
+    if (ca !== cb) return ca - cb;
+    return TYPE_ORDER.indexOf(a.question_type) - TYPE_ORDER.indexOf(b.question_type);
+  });
+}
+function defaultDuration(qs) {
+  const sec = qs.reduce((a, q) => a + (q.estimated_time_seconds || 120), 0);
+  return Math.max(10, Math.ceil(sec / 60 / 5) * 5);
+}
+function openNewPaper(job, meta) {
+  const qs = sortedQuestions(job.result.questions.map((q) => Object.assign({}, q, { chapter: meta.body.chapter })));
+  const paper = {
+    id: job.id, createdAt: new Date().toISOString(), exam: meta.body.exam, chapter: meta.body.chapter, chapters: [meta.body.chapter], difficulty: meta.body.difficulty,
+    requested: meta.body.count, partial: !!job.result.partial, quota: !!job.result.quota_exhausted, questions: qs,
+    settings: { institute: 'S-CUBUS', title: '', duration: defaultDuration(qs), marks: 4, negative: 1 },
+  };
+  savePaper(paper); openPaper(paper);
+  toast('Paper ready and saved to My papers.');
+}
+function openNewMultiPaper(questions, tasks, requested, quotaStopped) {
+  const chapterOrder = tasks.map((t) => t.chapter);
+  const qs = sortedQuestionsMulti(questions, chapterOrder);
+  const paper = {
+    id: 'multi-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+    createdAt: new Date().toISOString(), exam: S.exam, chapters: chapterOrder, chapter: chapterOrder.join(' + '), difficulty: S.difficulty,
+    requested, partial: questions.length < requested, quota: !!quotaStopped, questions: qs,
+    settings: { institute: 'S-CUBUS', title: '', duration: defaultDuration(qs), marks: 4, negative: 1 },
+  };
+  savePaper(paper); openPaper(paper);
+  toast('Paper ready and saved to My papers.');
+}
+function openPaper(p) { S.paper = p; S.removed = []; renderPaper(); show('paper'); }
+
+/* ---------- paper view ---------- */
+function chapterLabel(p) {
+  const arr = (p.chapters && p.chapters.length) ? p.chapters : (p.chapter ? [p.chapter] : []);
+  return arr.join(' + ') || p.chapter || '';
+}
+function paperTitle(p) { return `${EXAMS[p.exam]?.label || p.exam} | ${chapterLabel(p)}`; }
+function qCardHtml(q, n, opts = {}) {
+  const band = bandOf(q.difficulty);
+  const options = (q.options || []).map((o, i) => `<div class="opt"><b>(${String.fromCharCode(65 + i)})</b><span>${esc(o)}</span></div>`).join('');
+  return `<article class="qcard" data-id="${esc(q.id)}">
+    <div class="qhead">
+      ${n ? `<span class="qnum">${n}</span>` : ''}
+      <span class="chip">${esc(TYPES[q.question_type]?.short || q.question_type)}</span>
+      <span class="chip d-${band}">${band}</span>
+      <span class="chip muted">${icon('clock')} ~${Math.max(1, Math.round((q.estimated_time_seconds || 120) / 60))} min</span>
+      <span class="grow"></span>
+      ${opts.removable ? `<button class="icon-btn" data-act="remove" title="Remove this question" aria-label="Remove this question">${icon('trash')}</button>` : ''}
+    </div>
+    <div class="qtext">${esc(q.question)}</div>${options}
+    <details><summary>Answer and solution</summary>
+      <div class="ans-chip">Answer: ${esc((q.correct_answer || []).join(', '))}</div>
+      <div class="sol">${esc(q.solution)}</div>
+      <p class="small muted" style="margin:8px 0 0">Concepts: ${esc((q.concepts_tested || []).join(', ') || 'n/a')}</p>
+    </details>
+    ${opts.remedial ? `<details class="rem"><summary>Student got this wrong?</summary>
+      <div class="rem-row"><input type="text" placeholder="Wrong answer given (e.g. B, or a value)"><button class="btn secondary sm" data-act="remedial">Make a similar question</button></div>
+      <div class="rem-out"></div></details>` : ''}
+  </article>`;
+}
+
+function renderPaper() {
+  const p = S.paper; if (!p) return;
+  const st = p.settings; const qs = p.questions;
+  let html = `
+    <div class="paper-hero">
+      <div class="eyebrow">Physics paper</div>
+      <h1>${esc(paperTitle(p))}</h1>
+      <div class="meta">
+        <span>${icon('file')} ${qs.length} questions</span>
+        <span>${icon('clock')} ${st.duration} min</span>
+        <span>${icon('shield')} Independently solved and audited</span>
+        <span>${new Date(p.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+      </div>
+    </div>`;
+  if (p.quota) html += `<div class="notice warn" style="margin-top:14px">${icon('alert')}<div><b>Stopped early:</b> the free daily AI limit was reached, so this paper has ${qs.length} of the ${p.requested} questions requested. Make another paper tomorrow to add more.</div></div>`;
+  else if (p.partial) html += `<div class="notice warn" style="margin-top:14px">${icon('alert')}<div>Only ${qs.length} of ${p.requested} requested questions passed every check. Questions that fail are discarded rather than shown.</div></div>`;
+  html += `<div class="notice info" style="margin-top:14px">${icon('shield')}<div><b>Please skim before using.</b> AI checking is strong but not perfect. Use the bin icon to remove any question you do not want; it is removed from the PDFs too.</div></div>`;
+  html += `
+    <div class="actions">
+      <button class="btn" data-pdf="paper">${icon('download')} Question paper (PDF)</button>
+      <button class="btn secondary" data-pdf="key">${icon('download')} Answer key and solutions (PDF)</button>
+      <button class="btn secondary" data-pdf="teacher">${icon('download')} Teacher copy (PDF)</button>
+      <button class="btn ghost" id="setBtn">${icon('sliders')} Paper settings</button>
+      <button class="btn ghost" id="copyBtn">${icon('copy')} Copy text</button>
+      <button class="btn ghost" id="printBtn">${icon('printer')} Print</button>
+      <span class="pdfbar" id="pdfBar"><div></div></span><span class="small muted" id="pdfMsg"></span>
+    </div>
+    <div class="card settings" id="settingsCard">
+      <h2 style="margin-bottom:12px">Paper settings <span class="small muted">(used in the PDFs)</span></h2>
+      <div class="set-grid">
+        <div><label class="small muted" for="stInst">Institute name</label><input type="text" id="stInst" value="${esc(st.institute)}"></div>
+        <div><label class="small muted" for="stTitle">Paper title (optional)</label><input type="text" id="stTitle" value="${esc(st.title)}" placeholder="e.g. Weekly Test 4"></div>
+        <div><label class="small muted" for="stDur">Duration (minutes)</label><input type="number" id="stDur" min="5" max="600" value="${st.duration}"></div>
+        <div><label class="small muted" for="stMarks">Marks per question</label><input type="number" id="stMarks" min="1" max="20" value="${st.marks}"></div>
+        <div><label class="small muted" for="stNeg">Negative marks (option-based)</label><input type="number" id="stNeg" min="0" max="10" step="0.25" value="${st.negative}"></div>
+      </div>
+    </div>
+    <div id="qList">`;
+  let n = 0, lastType = null, lastChapter = null;
+  const multiChap = (p.chapters && p.chapters.length > 1);
+  qs.forEach((q) => {
+    n++;
+    if (multiChap && q.chapter !== lastChapter) { lastChapter = q.chapter; lastType = null; html += `<div class="chapter-title">${esc(q.chapter)}</div>`; }
+    if (q.question_type !== lastType) { lastType = q.question_type; html += `<div class="section-title">${esc(TYPES[q.question_type]?.label || q.question_type)}</div>`; }
+    html += qCardHtml(q, n, { removable: true, remedial: true });
+  });
+  if (!qs.length) html += '<div class="card empty"><p>All questions were removed from this paper.</p></div>';
+  html += '</div>';
+  $('#paperRoot').innerHTML = html;
+
+  $$('[data-pdf]').forEach((b) => (b.onclick = () => exportPdf(b.dataset.pdf, b)));
+  $('#setBtn').onclick = () => $('#settingsCard').classList.toggle('open');
+  $('#copyBtn').onclick = copyText;
+  $('#printBtn').onclick = () => window.print();
+  const bind = (id, key, num) => { const el = $(id); el.oninput = () => { st[key] = num ? (parseFloat(el.value) || 0) : el.value; savePaper(p); }; };
+  bind('#stInst', 'institute'); bind('#stTitle', 'title'); bind('#stDur', 'duration', 1); bind('#stMarks', 'marks', 1); bind('#stNeg', 'negative', 1);
+  typeset($('#paperRoot'));
+}
+
+$('#paperRoot').addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-act]'); if (!btn) return;
+  const card = btn.closest('.qcard'); const p = S.paper; if (!p || !card) return;
+  if (btn.dataset.act === 'remove') {
+    const i = p.questions.findIndex((q) => q.id === card.dataset.id); if (i < 0) return;
+    const [q] = p.questions.splice(i, 1); savePaper(p); renderPaper();
+    toast('Question removed.', { label: 'Undo', fn: () => { p.questions.splice(i, 0, q); savePaper(p); renderPaper(); } });
+  }
+  if (btn.dataset.act === 'remedial') {
+    const inp = $('input', card), out = $('.rem-out', card); const v = inp.value.trim();
+    if (!v) { inp.focus(); return; }
+    btn.disabled = true; out.textContent = 'Working... this can take a minute or two.';
+    try {
+      const { job_id } = await api('/api/jobs/remedial', { method: 'POST', body: JSON.stringify({ question_id: card.dataset.id, student_answer: v }) });
+      let job; do { await sleep(3500); job = await api('/api/jobs/' + job_id); } while (job.status !== 'done' && job.status !== 'failed');
+      out.textContent = '';
+      if (job.status === 'failed') out.innerHTML = `<div class="notice bad">${icon('alert')}<div>${esc(job.error || 'Failed')}</div></div>`;
+      else if (job.result.correct) out.innerHTML = `<div class="notice ok">${icon('check')}<div>That answer is correct, nothing to fix.</div></div>`;
+      else {
+        out.innerHTML = `<div class="remedial"><b>Diagnosis:</b> ${esc(job.result.analysis.error_type)}: ${esc(job.result.analysis.likely_misconception)}<div class="small muted" style="margin:6px 0 10px">${esc(job.result.analysis.explanation)}</div>${qCardHtml(job.result.question, 0, {})}</div>`;
+        typeset(out);
+      }
+    } catch (err) {
+      out.innerHTML = `<div class="notice warn">${icon('alert')}<div>${err.code === 404 ? 'The server no longer has this question (it forgets when it sleeps). Practice help works right after a paper is made.' : esc(err.message)}</div></div>`;
+    }
+    paintIcons(out); btn.disabled = false;
+  }
+});
+
+function paperAsText(p) {
+  let n = 0; const out = [`${p.settings.institute} | ${paperTitle(p)}`, ''];
+  p.questions.forEach((q) => {
+    n++; out.push(`Q${n}. [${TYPES[q.question_type]?.short}] ${q.question}`);
+    (q.options || []).forEach((o, i) => out.push(`  (${String.fromCharCode(65 + i)}) ${o}`)); out.push('');
+  });
+  out.push('ANSWER KEY'); n = 0;
+  p.questions.forEach((q) => { n++; out.push(`${n}. ${(q.correct_answer || []).join(', ')}`); });
+  return out.join('\n');
+}
+async function copyText() {
+  const t = paperAsText(S.paper);
+  try { await navigator.clipboard.writeText(t); toast('Copied to clipboard.'); }
+  catch (e) { const ta = document.createElement('textarea'); ta.value = t; document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast('Copied to clipboard.'); }
+}
+
+/* ---------- library ---------- */
+function renderLibrary() {
+  const list = loadPapers(); const root = $('#libRoot');
+  if (!list.length) {
+    root.innerHTML = `<div class="card empty"><div class="ring">${icon('folder')}</div><h2>No papers yet</h2><p class="muted">Papers you create will be saved here.</p><button class="btn" id="libNew">${icon('plus')} Create your first paper</button></div>`;
+    $('#libNew').onclick = () => show('create'); return;
+  }
+  root.innerHTML = `<div class="lib-grid">${list.map((p) => `
+    <div class="lib-card" data-id="${esc(p.id)}">
+      <div><span class="chip">${esc(EXAMS[p.exam]?.label || p.exam)}</span> <span class="chip muted">${p.questions.length} questions</span></div>
+      <h3>${esc(chapterLabel(p))}</h3>
+      <div class="small muted">${new Date(p.createdAt).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:auto">
+        <button class="btn sm" data-lib="open">Open</button>
+        <button class="btn secondary sm" data-lib="pdf">${icon('download')} PDF</button>
+        <button class="btn ghost sm" data-lib="del" aria-label="Delete">${icon('trash')}</button>
+      </div>
+    </div>`).join('')}</div>`;
+  $$('[data-lib]', root).forEach((b) => (b.onclick = async () => {
+    const id = b.closest('.lib-card').dataset.id; const p = loadPapers().find((x) => x.id === id); if (!p) return;
+    if (b.dataset.lib === 'open') openPaper(p);
+    if (b.dataset.lib === 'pdf') { S.paper = p; await exportPdf('paper', b); }
+    if (b.dataset.lib === 'del') { if (confirm('Delete this paper from this browser?')) { savePapers(loadPapers().filter((x) => x.id !== id)); renderLibrary(); } }
+  }));
+}
+
+/* =====================================================================
+   PDF export (built in the browser; nothing is uploaded)
+   ===================================================================== */
+const PDFCFG = { W: 210, H: 297, mx: 14, top: 18, bottom: 16, first: 12 };
+const loaded = {};
+function loadScript(url) {
+  if (loaded[url]) return loaded[url];
+  return (loaded[url] = new Promise((res, rej) => { const s = document.createElement('script'); s.src = url; s.onload = res; s.onerror = () => rej(new Error('load failed: ' + url)); document.head.append(s); }));
+}
+async function ensurePdfLibs() {
+  await Promise.all([
+    window.jspdf ? 0 : loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
+    window.html2canvas ? 0 : loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'),
+  ]);
+  if (!window.MathJax || !MathJax.typesetPromise) await sleep(1500);
+}
+const safeName = (s) => String(s).replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const marksFor = (p) => p.settings.marks;
+const OPTION_BASED = ['mcq', 'multiple_correct', 'assertion_reason', 'match_column'];
+
+function blocksFor(p, mode) {
+  const st = p.settings, qs = p.questions, ex = EXAMS[p.exam]?.label || p.exam;
+  const total = qs.length * st.marks;
+  const date = new Date(p.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  const heading = st.title.trim() || `${ex} Physics`;
+  const present = TYPE_ORDER.filter((t) => qs.some((q) => q.question_type === t));
+  const hero = (label) => `<div class="pdf-hero"><div class="logow"><img src="/logo-icon.png"></div><div class="txt"><div class="inst">${esc(st.institute.toUpperCase())}</div><div class="ttl">${esc(heading)}</div><div class="sub">${esc(label)} | ${esc(ex)} | ${esc(chapterLabel(p))}</div></div></div>`;
+  const list = [];
+
+  const paperBlocks = () => {
+    const instr = [`Each question carries <b>${st.marks}</b> mark${st.marks == 1 ? '' : 's'}.`];
+    instr.push(st.negative > 0 && qs.some((q) => OPTION_BASED.includes(q.question_type))
+      ? `For option-based questions, <b>${st.negative}</b> mark${st.negative == 1 ? ' is' : 's are'} deducted for each incorrect answer. Unattempted questions score 0.` : 'There is no negative marking. Unattempted questions score 0.');
+    if (present.includes('multiple_correct')) instr.push('In <b>One or more correct</b> questions, more than one option may be correct. Select every correct option.');
+    if (present.includes('assertion_reason')) instr.push('In <b>Assertion and Reason</b> questions, choose the one option that correctly describes both statements.');
+    if (present.includes('match_column')) instr.push('In <b>Match the columns</b> questions, choose the option with the correct matching.');
+    if (present.includes('fill_blank')) instr.push('For <b>numerical</b> questions, write the final value (with units where relevant).');
+    list.push({ html: `${hero('Question Paper')}
+      <div class="pdf-info"><div><small>Time allowed</small><b>${st.duration} min</b></div><div><small>Maximum marks</small><b>${total}</b></div><div><small>Questions</small><b>${qs.length}</b></div><div><small>Date</small><b>${esc(date)}</b></div></div>
+      <div class="pdf-name"><span>Name:</span><span>Roll no.:</span></div>
+      <div class="pdf-instr"><b>Instructions</b><ol>${instr.map((i) => `<li>${i}</li>`).join('')}</ol></div>`, first: true });
+    const multiChap = (p.chapters && p.chapters.length > 1);
+    let n = 0, last = null, lastChap = null;
+    qs.forEach((q) => {
+      n++;
+      if (multiChap && q.chapter !== lastChap) { lastChap = q.chapter; last = null; list.push({ html: `<div class="pdf-chap">${esc(q.chapter)}</div>`, keepNext: true }); }
+      if (q.question_type !== last) { last = q.question_type; list.push({ html: `<div class="pdf-sec">${esc(TYPES[q.question_type]?.label)}</div>`, keepNext: true }); }
+      const neg = OPTION_BASED.includes(q.question_type) && st.negative > 0 ? `, -${st.negative}` : '';
+      const opts = (q.options || []).map((o, i) => `<div class="opt"><b>(${String.fromCharCode(65 + i)})</b><span class="pre">${esc(o)}</span></div>`).join('');
+      list.push({ html: `<div class="pdf-q"><div class="row"><div class="n">${n}</div><div class="body"><span class="marks">[+${st.marks}${neg}]</span><div class="pre">${esc(q.question)}</div>${opts}${q.question_type === 'fill_blank' ? '<div class="blank">Answer: ______________________</div>' : ''}</div></div></div>` });
+    });
+  };
+  const keyBlocks = () => {
+    list.push({ html: `${hero('Answer Key and Solutions')}<div style="height:6px"></div>`, first: mode === 'key' });
+    list.push({ html: '<div class="pdf-h2">Answer key</div>', keepNext: true });
+    let n = 0; let cells = '';
+    qs.forEach((q) => { n++; cells += `<div><b>${n}.</b>${esc((q.correct_answer || []).join(', '))}</div>`; });
+    list.push({ html: `<div class="pdf-akey">${cells}</div>` });
+    list.push({ html: '<div class="pdf-h2">Worked solutions</div>', keepNext: true });
+    n = 0;
+    qs.forEach((q) => {
+      n++;
+      list.push({ html: `<div class="pdf-sol"><div class="h"><span class="qn">Q${n}</span><span class="an">Answer: ${esc((q.correct_answer || []).join(', '))}</span><span class="tg">${esc(TYPES[q.question_type]?.short)} | ${bandOf(q.difficulty)}</span></div><div class="pre">${esc(q.solution)}</div><div class="mt">Concepts: ${esc((q.concepts_tested || []).join(', ') || 'n/a')}</div></div>` });
+    });
+  };
+  if (mode === 'paper') paperBlocks();
+  else if (mode === 'key') keyBlocks();
+  else { paperBlocks(); list.push({ pageBreak: true }); keyBlocks(); }
+  return list;
+}
+
+async function exportPdf(mode, btn) {
+  const p = S.paper;
+  if (!p || !p.questions.length) { toast('There are no questions to export.'); return; }
+  const bar = $('#pdfBar'), msg = $('#pdfMsg'), fill = bar ? $('div', bar) : null;
+  const orig = btn ? btn.innerHTML : ''; if (btn) btn.disabled = true;
+  const progress = (i, n) => { if (bar) { bar.classList.add('on'); fill.style.width = Math.round((100 * i) / n) + '%'; msg.textContent = `Preparing PDF... ${Math.round((100 * i) / n)}%`; } };
+  try {
+    if (msg) msg.textContent = 'Loading PDF tools...';
+    await ensurePdfLibs();
+    const { jsPDF } = window.jspdf; const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
+    const stage = $('#pdfStage'); const blocks = blocksFor(p, mode);
+    const imgs = [];
+    for (let i = 0; i < blocks.length; i++) {
+      const b = blocks[i];
+      if (b.pageBreak) { imgs.push(b); continue; }
+      const el = document.createElement('div'); el.className = 'pdf-block'; el.innerHTML = b.html; stage.append(el);
+      await typeset(el); await sleep(30);
+      const canvas = await window.html2canvas(el, { scale: 2, backgroundColor: '#ffffff', logging: false });
+      stage.removeChild(el);
+      imgs.push({ url: canvas.toDataURL('image/jpeg', 0.95), ratio: canvas.height / canvas.width, keepNext: b.keepNext, first: b.first });
+      progress(i + 1, blocks.length);
+      if (i % 4 === 3) await sleep(0);
+    }
+    // ---- layout onto A4 pages ----
+    const { W, H, mx, top, bottom, first } = PDFCFG; const cw = W - 2 * mx; let y = first;
+    const usable = () => H - bottom - top;
+    const newPage = () => { doc.addPage(); y = top; };
+    for (let i = 0; i < imgs.length; i++) {
+      const im = imgs[i];
+      if (im.pageBreak) { if (y > top + 1) newPage(); continue; }
+      let w = cw, h = cw * im.ratio;
+      if (h > usable()) { const s = usable() / h; w = cw * s; h = usable(); }
+      let need = h;
+      if (im.keepNext && imgs[i + 1] && !imgs[i + 1].pageBreak) need += Math.min(cw * imgs[i + 1].ratio, usable()) + 2;
+      if (y + need > H - bottom && y > top + 0.5) newPage();
+      doc.addImage(im.url, 'JPEG', mx + (cw - w) / 2, y, w, h, undefined, 'FAST');
+      y += h + (im.keepNext ? 1.5 : 2.5);
+    }
+    // ---- running header / footer ----
+    const total = doc.getNumberOfPages(); const st = p.settings; const ex = EXAMS[p.exam]?.label || p.exam;
+    const right = mode === 'paper' ? 'Question Paper' : mode === 'key' ? 'Answer Key & Solutions' : 'Teacher Copy';
+    for (let i = 1; i <= total; i++) {
+      doc.setPage(i);
+      if (i > 1) {
+        doc.setFillColor(64, 12, 77); doc.rect(0, 0, W, 9, 'F');
+        doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+        doc.text(`${st.institute}  |  Physics  |  ${ex}`, mx, 6);
+        doc.setFont('helvetica', 'normal'); doc.text(right, W - mx, 6, { align: 'right' });
+      }
+      doc.setDrawColor(228, 211, 234); doc.setLineWidth(0.3); doc.line(mx, H - 11, W - mx, H - 11);
+      doc.setTextColor(111, 100, 120); doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
+      doc.text(chapterLabel(p).slice(0, 70), mx, H - 6.5);
+      doc.text(`Page ${i} of ${total}`, W - mx, H - 6.5, { align: 'right' });
+    }
+    const suffix = mode === 'paper' ? 'Question-Paper' : mode === 'key' ? 'Answer-Key' : 'Teacher-Copy';
+    doc.save(`${safeName(st.institute)}_${safeName(ex)}_${safeName(chapterLabel(p)).slice(0, 40)}_${suffix}.pdf`);
+    if (msg) msg.textContent = 'PDF downloaded.'; setTimeout(() => { if (msg) msg.textContent = ''; if (bar) bar.classList.remove('on'); }, 3000);
+  } catch (e) {
+    console.error(e);
+    if (msg) msg.textContent = '';
+    if (bar) bar.classList.remove('on');
+    toast(/load failed/.test(e.message) ? 'PDF tools could not load. Check your internet and try again, or use Print.' : 'Could not build the PDF: ' + e.message);
+  } finally { $('#pdfStage').innerHTML = ''; if (btn) { btn.disabled = false; btn.innerHTML = orig; } }
+}
+
+/* =====================================================================
+   boot
+   ===================================================================== */
+$('#key').value = store.raw('pm_key');
+$('#key').addEventListener('input', () => { clearTimeout(keyTimer); keyTimer = setTimeout(verifyKey, 600); });
+$('#keyEye').onclick = () => { const k = $('#key'); k.type = k.type === 'password' ? 'text' : 'password'; };
+paintIcons(); buildCreate(); updateLibCount();
+window.addEventListener('load', () => typeset());
+(async () => {
+  const up = await checkServer();
+  if (up && getKey()) verifyKey();
+  const meta = store.get('pm_job');
+  if (up && meta && getKey()) followJob(meta);
+  else if (!getKey()) showCreateNotice('info', 'Welcome! Paste your <b>access key</b> in the bottom-left box to start.');
+})();
+</script>
+</body>
+</html>
